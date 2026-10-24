@@ -1,0 +1,21 @@
+<style>
+.fx-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.fx-row form{margin:0;display:flex;gap:6px;align-items:center}
+.fx-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:12px 0}
+.fx-stat{border:1px solid var(--hairline-color);border-radius:4px;padding:8px 10px;background:var(--darkened-bg)}
+.fx-stat b{display:block;font-size:16px;color:var(--body-loud-color)}
+.fx-q{color:var(--body-quiet-color);font-size:12px}
+.fx-bars{display:flex;gap:2px;align-items:flex-end;height:60px;border:1px solid var(--hairline-color);padding:6px;border-radius:4px}
+.fx-bars i{flex:1;background:var(--primary);min-width:3px;border-radius:2px 2px 0 0}
+.fx-bars i.z{background:var(--hairline-color);height:2px!important}
+.fx-frame{border:1px solid var(--hairline-color);border-radius:4px;margin:6px 0}
+.fx-frame summary{padding:6px 9px;cursor:pointer;font-family:monospace;font-size:12.5px}
+.fx-frame.lib summary{color:var(--body-quiet-color)}
+.fx-code{margin:0;padding:6px 0;background:var(--darkened-bg);overflow-x:auto;font:12px/1.5 monospace}
+.fx-code span{display:block;padding:0 9px;white-space:pre}.fx-code span.cur{background:var(--selected-row)}
+.fx-code em{color:var(--body-quiet-color);font-style:normal;display:inline-block;min-width:3.5em}
+.fx-badge{display:inline-block;padding:1px 7px;border-radius:9px;font-size:12px;border:1px solid var(--hairline-color)}
+.fx-meter{height:10px;background:var(--hairline-color);border-radius:5px;overflow:hidden;margin:8px 0}
+.fx-meter i{display:block;height:100%;background:var(--primary)}
+#content h2.fx{margin:22px 0 8px;font-size:15px}
+</style>

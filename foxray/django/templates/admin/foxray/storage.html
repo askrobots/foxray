@@ -1,0 +1,22 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+{% block extrastyle %}{{ block.super }}{% include "admin/foxray/_style.html" %}{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+&rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a> &rsaquo; Storage</div>{% endblock %}
+{% block content %}<div id="content-main">
+<div class="fx-grid">
+<div class="fx-stat"><span class="fx-q">Used</span><b>{{ used }}</b></div>
+<div class="fx-stat"><span class="fx-q">Cap</span><b>{% if report.cap_bytes %}{{ cap }}{% else %}none{% endif %}</b></div>
+<div class="fx-stat"><span class="fx-q">Mode</span><b>{% if report.mode == "counts_only" %}counting only (store full){% else %}normal{% endif %}</b></div>
+<div class="fx-stat"><span class="fx-q">Last cleanup</span><b>{% if report.last_cleanup_at %}{{ report.last_cleanup_at|timesince }} ago{% else %}never{% endif %}</b><span class="fx-q">{{ last_at }}</span></div>
+<div class="fx-stat"><span class="fx-q">Database</span><b>{{ report.dialect }}</b><span class="fx-q">{% if report.dialect == "sqlite" %}whole file {{ file }}{% else %}Foxray tables {{ file }}{% endif %}</span></div>
+</div>
+<div class="fx-meter" title="{{ percent }}%"><i style="width:{% if percent > 100 %}100{% else %}{{ percent }}{% endif %}%"></i></div>
+<p class="fx-q">Cleanup runs by itself at most every {{ interval_minutes }} minutes, after an event arrives (or from <code>manage.py foxray_tick</code>). Over 90% of the cap the oldest event bodies go until it is under 80%; issues and their counts stay. Still over the cap: counting only until there is room.</p>
+{% if can_change %}<form method="post">{% csrf_token %}<input type="submit" value="Clean up now"></form>{% endif %}
+<h2 class="fx">Last cleanup removed</h2>
+<table>{% for k, n in removed %}<tr><td>{{ k }}</td><td style="text-align:right">{{ n }}</td></tr>{% empty %}<tr><td class="fx-q">Nothing.</td></tr>{% endfor %}</table>
+<h2 class="fx">Rows</h2>
+<table>{% for t, n in tables %}<tr><td>{{ t }}</td><td style="text-align:right">{{ n }}</td></tr>{% endfor %}</table>
+<p class="fx-q">Alerts waiting to send: {{ report.pending_alerts }}</p>
+</div>{% endblock %}

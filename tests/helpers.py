@@ -88,3 +88,15 @@ def make_stack(store, settings: Settings | None = None, clock: Clock | None = No
                      channels_for=lambda p: ["test"], clock=clock)
     ing = Ingestor(store, settings, links=links, channels_for=lambda p: ["test"], housekeeper=hk, clock=clock)
     return ing, hk, outbox, channel, clock
+
+
+def close_thread_connections() -> None:
+    """Threads that used Django's connection must close it, or Postgres
+    keeps sessions open on the test database."""
+    try:
+        from django.conf import settings
+        if settings.configured:
+            from django.db import connections
+            connections.close_all()
+    except ImportError:
+        pass

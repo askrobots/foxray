@@ -1,0 +1,49 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+{% block extrastyle %}{{ block.super }}{% include "admin/foxray/_style.html" %}{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+&rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
+&rsaquo; <a href="{% url 'admin:foxray_issue_changelist' %}">Issues</a> &rsaquo; {{ issue.title|truncatechars:60 }}</div>{% endblock %}
+{% block content_title %}{% endblock %}
+{% block content %}<div id="content-main">
+<h1 style="word-break:break-word">{{ issue.title }}</h1>
+<p class="fx-q">{{ issue.culprit }}{% if project %} · {{ project.name }}{% endif %}</p>
+<div class="fx-row"><span class="fx-badge">{{ issue.level }}</span><span class="fx-badge">{{ issue.status }}{% if ignore_note %} {{ ignore_note }}{% endif %}</span>
+{% if can_change %}
+  {% if issue.status == "unresolved" %}
+  <form method="post">{% csrf_token %}<input type="hidden" name="action" value="resolve"><input type="submit" class="default" value="Resolve"></form>
+  <form method="post">{% csrf_token %}<input type="hidden" name="action" value="ignore"><input type="submit" value="Ignore"></form>
+  <form method="post">{% csrf_token %}<input type="hidden" name="action" value="ignore_count"><input type="number" name="count" min="1" value="100" style="width:6em" aria-label="more events"><input type="submit" value="Ignore until this many more"></form>
+  <form method="post">{% csrf_token %}<input type="hidden" name="action" value="ignore_until"><input type="date" name="until" required aria-label="date"><input type="submit" value="Ignore until"></form>
+  {% else %}
+  <form method="post">{% csrf_token %}<input type="hidden" name="action" value="reopen"><input type="submit" class="default" value="Reopen"></form>
+  {% endif %}
+{% endif %}</div>
+<div class="fx-grid">
+<div class="fx-stat"><span class="fx-q">Events</span><b>{{ issue.times_seen }}</b></div>
+<div class="fx-stat"><span class="fx-q">Users</span><b>{{ issue.users_seen }}</b></div>
+<div class="fx-stat"><span class="fx-q">First seen</span><b>{{ issue.first_seen|timesince }} ago</b><span class="fx-q">{{ first_seen }}</span></div>
+<div class="fx-stat"><span class="fx-q">Last seen</span><b>{{ issue.last_seen|timesince }} ago</b><span class="fx-q">{{ last_seen }}</span></div>
+{% for key, values in tags.items %}<div class="fx-stat"><span class="fx-q">{{ key }}</span>{% for v in values|slice:":6" %}<div>{{ v.0 }} <span class="fx-q">{{ v.1 }}</span></div>{% endfor %}</div>{% endfor %}
+</div>
+<h2 class="fx">Last 30 days</h2>
+<div class="fx-bars">{% for b in bars %}<i class="{% if not b.n %}z{% endif %}" style="height:{{ b.pct }}%" title="{{ b.day }}: {{ b.n }}"></i>{% endfor %}</div>
+{% if event %}
+<h2 class="fx">Event <span class="fx-q">{{ event.event_id }} · {{ event_when }}</span></h2>
+{% if payload.message and not payload.exception %}<pre class="fx-code"><span>{{ payload.message }}</span></pre>{% endif %}
+{% for exc in exceptions %}
+<div style="margin:12px 0"><h3 style="margin:0 0 4px;word-break:break-word">{{ exc.type }}{% if exc.value %}<span class="fx-q" style="font-size:inherit">: {{ exc.value }}</span>{% endif %}</h3>
+{% if exc.mechanism.type %}<div class="fx-q">{{ exc.mechanism.type }}{% if exc.mechanism.handled == False %} · unhandled{% elif exc.mechanism.handled %} · handled{% endif %}</div>{% endif %}
+{% for f in exc.frames %}<details class="fx-frame{% if not f.in_app %} lib{% endif %}"{% if f.in_app and forloop.counter <= 3 %} open{% endif %}>
+<summary>{{ f.label }} <span class="fx-q">{{ f.path }}</span></summary>
+{% if f.lines %}<pre class="fx-code">{% for line in f.lines %}<span class="{% if line.2 %}cur{% endif %}"><em>{{ line.0|default_if_none:"" }}</em>{{ line.1 }}</span>{% endfor %}</pre>{% endif %}
+{% if f.vars %}<table>{% for k, v in f.vars.items %}<tr><td>{{ k }}</td><td><code>{{ v }}</code></td></tr>{% endfor %}</table>{% endif %}
+</details>{% endfor %}</div>
+{% endfor %}
+{% if breadcrumbs %}<h2 class="fx">Breadcrumbs</h2><table style="width:100%">{% for c in breadcrumbs %}<tr><td class="fx-q">{{ c.timestamp|slice:"11:19" }}</td><td>{{ c.category }}</td><td>{{ c.message }}{% if c.data %} <span class="fx-q">{{ c.data }}</span>{% endif %}</td></tr>{% endfor %}</table>{% endif %}
+{% for title, rows in sections %}<h2 class="fx">{{ title }}</h2><table style="width:100%">{% for k, v in rows %}<tr><td class="fx-q" style="width:28%">{{ k }}</td><td><code>{{ v }}</code></td></tr>{% endfor %}</table>{% endfor %}
+{% else %}
+<h2 class="fx">Latest event</h2><p class="fx-q">No event body is kept for this issue (sampled, past retention, or the store was full). The counts above are complete.</p>
+{% endif %}
+{% if events|length > 1 %}<h2 class="fx">Recent events</h2><table style="width:100%">{% for e in events %}<tr><td><a href="?event={{ e.id }}">{{ e.event_id|slice:":12" }}</a></td><td>{{ e.received_at }}</td><td>{{ e.environment }}</td><td>{{ e.release }}</td></tr>{% endfor %}</table>{% endif %}
+</div>{% endblock %}

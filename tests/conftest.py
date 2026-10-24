@@ -59,3 +59,12 @@ def store(request):
     """The storage contract runs against every store."""
     return request.getfixturevalue({"sqlite": "sqlite_store", "postgres": "pg_store",
                                     "django": "django_store"}[request.param])
+
+
+def pytest_collection_modifyitems(items):
+    # pytest-django creates only the test databases that collected tests ask
+    # for, so mark the Django runs of the contract up front.
+    for item in items:
+        callspec = getattr(item, "callspec", None)
+        if callspec is not None and callspec.params.get("store") == "django":
+            item.add_marker(pytest.mark.django_db(transaction=True))

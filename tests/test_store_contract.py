@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from foxray.core.sql import IssueQuery
-from tests.helpers import Clock, auth_headers, envelope, make_event, make_stack
+from tests.helpers import Clock, auth_headers, close_thread_connections, envelope, make_event, make_stack
 
 UTC = timezone.utc
 T0 = datetime(2026, 10, 1, 12, 0, 0, 123456, tzinfo=UTC)
@@ -64,11 +64,14 @@ def test_counters_are_atomic_under_threads(store):
     lock = threading.Lock()
 
     def work():
-        for _ in range(25):
-            n = store.hit_rate(p.id, 1000)
-            store.bump_counter(p.id, "2026-10-01", "dropped:session")
-            with lock:
-                seen.append(n)
+        try:
+            for _ in range(25):
+                n = store.hit_rate(p.id, 1000)
+                store.bump_counter(p.id, "2026-10-01", "dropped:session")
+                with lock:
+                    seen.append(n)
+        finally:
+            close_thread_connections()
     threads = [threading.Thread(target=work) for _ in range(6)]
     [t.start() for t in threads]
     [t.join() for t in threads]
@@ -89,6 +92,8 @@ def test_concurrent_ingest_groups_into_one_issue(store):
                 assert r.status == 200, r.body
         except Exception as exc:  # noqa: BLE001
             errors.append(exc)
+        finally:
+            close_thread_connections()
     threads = [threading.Thread(target=work) for _ in range(5)]
     [t.start() for t in threads]
     [t.join() for t in threads]
