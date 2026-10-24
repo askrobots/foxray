@@ -58,7 +58,8 @@ urlpatterns += [path("foxray/", include("foxray.django.urls"))]
 ```
 
 - If you already call `sentry_sdk.init(...)` before apps load, or `SENTRY_DSN`
-  is set, Foxray leaves the SDK alone. To send the app's own errors to Foxray
+  is set, Foxray leaves the SDK alone. (A left-over `SENTRY_DSN` with no SDK
+  started: set `FOXRAY = {"AUTO_INIT": True}` and Foxray starts anyway.) To send the app's own errors to Foxray
   explicitly, call `foxray.django.sdk.init(**options)` instead of
   `sentry_sdk.init`. `FOXRAY = {"AUTO_INIT": False}` turns auto-start off. It
   also stays off under `manage.py test` and pytest, so a host app's test errors

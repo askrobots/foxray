@@ -9,7 +9,8 @@ raises into the app.
 With ``FOXRAY = {"AUTO_INIT": True}`` (the default when sentry-sdk is
 installed) AppConfig.ready() does this for you, with DjangoIntegration,
 CeleryIntegration if Celery is installed, traces_sample_rate=0 and no PII, unless the SDK is already
-set up (your own ``sentry_sdk.init``) or ``SENTRY_DSN`` is set."""
+set up (your own ``sentry_sdk.init``) or ``SENTRY_DSN`` is set (unless
+AUTO_INIT is set explicitly)."""
 
 from __future__ import annotations
 
@@ -189,16 +190,22 @@ def auto_init() -> bool:
     if _running_tests() and setting != "always":
         return False  # don't write the host app's test errors into its test database
     try:
-        import sentry_sdk
+        import sentry_sdk  # noqa: F401
     except ImportError:
         return False
-    if os.environ.get("SENTRY_DSN"):
+    # SENTRY_DSN alone usually means a real Sentry; a left-over one (the SDK
+    # never started) doesn't stop an AUTO_INIT the settings asked for.
+    if os.environ.get("SENTRY_DSN") and "AUTO_INIT" not in c:
         return False
-    try:
-        if sentry_sdk.get_client().is_active():
-            return False
-    except AttributeError:  # pragma: no cover - sentry-sdk 1.x
-        if sentry_sdk.Hub.current.client is not None:
-            return False
+    if _sdk_active():
+        return False
     init(**(c.get("SDK_OPTIONS") or {}))
     return True
+
+
+def _sdk_active() -> bool:
+    import sentry_sdk
+    try:
+        return sentry_sdk.get_client().is_active()
+    except AttributeError:  # pragma: no cover - sentry-sdk 1.x
+        return sentry_sdk.Hub.current.client is not None

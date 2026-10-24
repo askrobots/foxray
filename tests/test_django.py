@@ -283,3 +283,19 @@ def test_env_vars_fill_in_settings(monkeypatch, settings):
     assert conf()["ALERT_EMAILS"] == ["a@example.com", "b@example.com"]
     assert conf()["AUTO_INIT"] is False
     assert core_settings().base_url == "http://testserver"  # settings.FOXRAY wins
+
+
+def test_auto_init_and_a_left_over_sentry_dsn(monkeypatch, settings):
+    from foxray.django import sdk
+    started = []
+    monkeypatch.setattr(sdk, "init", lambda **kw: started.append(kw))
+    monkeypatch.setattr(sdk, "_running_tests", lambda: False)
+    monkeypatch.setattr(sdk, "_sdk_active", lambda: False)
+    monkeypatch.setenv("SENTRY_DSN", "https://k@old-sentry.example/1")
+    settings.FOXRAY = {}
+    assert sdk.auto_init() is False            # SENTRY_DSN: probably a real Sentry
+    settings.FOXRAY = {"AUTO_INIT": True}
+    assert sdk.auto_init() is True             # asked for: the left-over DSN doesn't stop it
+    monkeypatch.setattr(sdk, "_sdk_active", lambda: True)
+    assert sdk.auto_init() is False            # a real Sentry SDK already running wins
+    assert len(started) == 1
