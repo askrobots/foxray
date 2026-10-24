@@ -39,6 +39,22 @@ def pg_url():
 
 
 @pytest.fixture
+def pg_fresh_url():
+    """A brand-new database for one test (dropped afterwards)."""
+    if not PG_URL:
+        pytest.skip("set FOXRAY_TEST_PG_URL to run the Postgres tests")
+    import psycopg
+    name = "foxray_test_" + uuid.uuid4().hex[:10]
+    with psycopg.connect(PG_URL, autocommit=True) as conn:
+        conn.execute(f"CREATE DATABASE {name}")
+    try:
+        yield _with_db(PG_URL, name)
+    finally:
+        with psycopg.connect(PG_URL, autocommit=True) as conn:
+            conn.execute(f"DROP DATABASE IF EXISTS {name} WITH (FORCE)")
+
+
+@pytest.fixture
 def pg_store(pg_url):
     backend = PostgresBackend(pg_url)
     init_schema(backend)

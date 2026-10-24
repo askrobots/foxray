@@ -125,3 +125,12 @@ def test_store_body_plain_and_old_base64_zlib():
     assert parse_store_body(old, 1000) == ev
     with pytest.raises(PayloadError):
         parse_store_body(b"[]", 1000)
+
+
+def test_brotli_when_installed():
+    brotli = pytest.importorskip("brotli")
+    raw = b'{"x": 1}' * 100
+    assert decode_body(brotli.compress(raw), "br", 10_000) == raw
+    with pytest.raises(PayloadError) as e:
+        decode_body(brotli.compress(b"0" * 100_000), "br", 1000)
+    assert e.value.status == 413

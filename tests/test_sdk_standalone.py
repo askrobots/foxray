@@ -31,9 +31,9 @@ def foxray(*args, **kw):
                           text=True, timeout=60, check=True, **kw).stdout
 
 
-@pytest.fixture
-def server(tmp_path):
-    db = str(tmp_path / "foxray.db")
+@pytest.fixture(params=["sqlite", "postgres"])
+def server(request, tmp_path):
+    db = str(tmp_path / "foxray.db") if request.param == "sqlite" else request.getfixturevalue("pg_fresh_url")
     port = free_port()
     base = f"http://127.0.0.1:{port}"
     proc = subprocess.Popen([sys.executable, "-m", "foxray", "--db", db, "serve", "--host", "127.0.0.1",
@@ -48,11 +48,22 @@ def server(tmp_path):
         proc.wait(timeout=10)
 
 
+def _has_brotli() -> bool:
+    try:
+        import brotli  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+
 @pytest.mark.slow
-def test_real_sentry_sdk_against_standalone(server):
+@pytest.mark.parametrize("compression", ["gzip", pytest.param("br", marks=pytest.mark.skipif(
+    not _has_brotli(), reason="Brotli not installed"))])
+def test_real_sentry_sdk_against_standalone(server, compression):
     dsn = foxray("--db", server["db"], "create-project", "shop", "--base-url", server["base"]).strip()
     assert dsn.startswith("http://") and dsn.endswith("/1")
-    out = subprocess.run([sys.executable, str(ROOT / "tests" / "sdk_client.py"), dsn], cwd=ROOT, env=ENV,
+    out = subprocess.run([sys.executable, str(ROOT / "tests" / "sdk_client.py"), dsn], cwd=ROOT,
+                         env={**ENV, "SDK_COMPRESSION": compression},
                          capture_output=True, text=True, timeout=60, check=True).stdout
     ids = json.loads(out.strip().splitlines()[-1])
     store = open_store(server["db"])

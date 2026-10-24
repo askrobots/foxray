@@ -329,3 +329,10 @@ def test_cleanup_primitives(store):
     assert store.db_size() > 0 and store.free_bytes() >= 0
     store.reclaim()
     assert set(store.table_counts()) >= {"foxray_issue", "foxray_event", "foxray_alert", "foxray_state"}
+
+
+def test_implements_the_store_protocol(store):
+    from foxray.core.storage import Backend, Store
+    assert isinstance(store, Store)
+    assert isinstance(store.db, Backend)
+    assert store.dialect in ("sqlite", "postgres")

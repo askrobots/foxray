@@ -18,8 +18,12 @@ def checkout(n):
 
 
 def main(dsn: str) -> None:
+    import os
+    experiments = {}
+    if os.environ.get("SDK_COMPRESSION"):  # "gzip" or "br" (the SDK picks br itself when brotli is installed)
+        experiments["transport_compression_algo"] = os.environ["SDK_COMPRESSION"]
     sentry_sdk.init(dsn=dsn, traces_sample_rate=0, send_default_pii=False, release="shop@1.2.3",
-                    environment="test", server_name="client-1")
+                    environment="test", server_name="client-1", _experiments=experiments)
     ids: dict = {"exc": []}
     for _ in range(2):
         try:
