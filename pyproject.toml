@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "foxray"
-version = "0.1.0"
+version = "0.1.1"
 description = "A light error tracker that accepts errors from the Sentry SDKs. Works as a Django app or a single small process."
 readme = "README.md"
 license = {text = "MIT"}

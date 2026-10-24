@@ -16,6 +16,7 @@ from foxray.core.ingest import Ingestor
 from foxray.core.maintenance import Housekeeper, Maintenance
 
 from .conf import conf, core_settings
+from .sdk import quiet
 from .store import get_store
 
 log = logging.getLogger("foxray.django")
@@ -54,13 +55,25 @@ def recipients(project) -> list[str]:
                 .values_list("email", flat=True))
 
 
+def sender_email() -> str:
+    """FOXRAY['FROM_EMAIL'], else SERVER_EMAIL if the site set one (Django's own
+    default, root@localhost, is no mailbox), else DEFAULT_FROM_EMAIL."""
+    configured = conf().get("FROM_EMAIL")
+    if configured:
+        return configured
+    server = getattr(django_settings, "SERVER_EMAIL", "")
+    if server and server != "root@localhost":
+        return server
+    return django_settings.DEFAULT_FROM_EMAIL
+
+
 def django_email(alert, project) -> str:
     from django.core.mail import send_mail
     to = recipients(project)
     if not to:
         return "no recipients: set ADMINS, FOXRAY['ALERT_EMAILS'], or give a superuser an email"
-    sender = getattr(django_settings, "SERVER_EMAIL", None) or django_settings.DEFAULT_FROM_EMAIL
-    send_mail(alert.subject, alert.body, sender, to, fail_silently=False)
+    with quiet():
+        send_mail(alert.subject, alert.body, sender_email(), to, fail_silently=False)
     return f"emailed {len(to)}"
 
 
@@ -93,7 +106,12 @@ class Runtime:
                 out.append("webhook")
             return out
         self.channels_for = channels
-        self.outbox = Outbox(self.store, s, {"email": django_email, "webhook": webhook_sender(webhook)})
+        post = webhook_sender(webhook)
+
+        def quiet_webhook(*args, **kwargs):
+            with quiet():
+                return post(*args, **kwargs)
+        self.outbox = Outbox(self.store, s, {"email": django_email, "webhook": quiet_webhook})
         self.maintenance = Maintenance(self.store, s, links=self.links, global_channels=channels(None))
         self.housekeeper = Housekeeper(self.store, s, maintenance=self.maintenance, outbox=self.outbox,
                                        links=self.links, channels_for=channels)

@@ -6,6 +6,7 @@ PROJECT        the project the app's own errors go to ("default")
 BASE_URL       public URL of the site, for DSNs and alert links
 ALERT_EMAILS   list; default settings.ADMINS, else the superusers
 ALERT_WEBHOOK  URL to POST alerts to as JSON
+FROM_EMAIL     sender of alert emails; default SERVER_EMAIL if set, else DEFAULT_FROM_EMAIL
 MAX_DB_MB, EVENT_RETENTION_DAYS, RATE_LIMIT_PER_MINUTE, ... any field of
 foxray.core.settings.Settings, upper-cased.
 
@@ -34,4 +35,5 @@ def conf() -> dict:
 def core_settings() -> Settings:
     data = conf()
     data.pop("ALERT_EMAILS", None)  # resolved at send time (ADMINS, superusers)
+    data.pop("FROM_EMAIL", None)
     return Settings.from_mapping(data, upper=True)

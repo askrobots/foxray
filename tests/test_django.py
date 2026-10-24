@@ -156,6 +156,14 @@ def test_deliver_falls_back_to_logging(caplog, monkeypatch):
                for r in caplog.records)
 
 
+
+def _sdk_major():
+    import sentry_sdk
+    return int(sentry_sdk.VERSION.split(".")[0])
+
+
+@pytest.mark.skipif(_sdk_major() < 2, reason="sdk_client.py uses crons and new_scope (2.x); "
+                                                "test_sdk_any_version covers 1.x over HTTP")
 def test_real_sentry_sdk_over_http_to_django(live_server, rt):
     project = rt.store.create_project("shop")
     host = live_server.url.split("//")[1]
@@ -299,3 +307,43 @@ def test_auto_init_and_a_left_over_sentry_dsn(monkeypatch, settings):
     monkeypatch.setattr(sdk, "_sdk_active", lambda: True)
     assert sdk.auto_init() is False            # a real Sentry SDK already running wins
     assert len(started) == 1
+
+
+def test_alert_sender(settings):
+    from foxray.django.runtime import sender_email
+    assert sender_email() == "foxray@example.com"         # the site's SERVER_EMAIL
+    settings.SERVER_EMAIL = "root@localhost"              # Django's default: no mailbox
+    settings.DEFAULT_FROM_EMAIL = "Shop <hello@shop.example>"
+    assert sender_email() == "Shop <hello@shop.example>"
+    settings.FOXRAY = {**settings.FOXRAY, "FROM_EMAIL": "errors@shop.example"}
+    assert sender_email() == "errors@shop.example"
+
+
+class MailBackendThatLogsAFailure:
+    """Like a site's own SMTP backend: a failed send is logged, not raised."""
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def send_messages(self, messages):
+        import logging
+        logging.getLogger("shop.mail").error("SMTP login failed: 535 authentication failed")
+        return 0
+
+
+def test_a_failing_alert_email_is_not_stored_as_an_error(project, rt, settings, caplog):
+    """An alert email whose sending fails (and gets logged) must not become a new issue, whose
+    alert fails again, and so on."""
+    import sentry_sdk
+
+    from foxray.django import sdk
+    settings.EMAIL_BACKEND = "tests.test_django.MailBackendThatLogsAFailure"
+    sdk.init()
+    try:
+        post_envelope(Client(), project, envelope(({"type": "event"}, make_event("Checkout broke"))))
+        sentry_sdk.flush(timeout=10)
+    finally:
+        sdk_client().close(timeout=5)
+        sentry_sdk.init()
+    issues = rt.store.list_issues()[0]
+    assert [i.title for i in issues] == ["Checkout broke: boom"]
+    assert any("dropped an error raised inside Foxray" in r.getMessage() for r in caplog.records)

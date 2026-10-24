@@ -20,6 +20,7 @@ import os
 import queue
 import sys
 import threading
+from contextlib import contextmanager
 
 from .conf import conf
 
@@ -29,6 +30,21 @@ try:
     from sentry_sdk.transport import Transport as _Transport
 except ImportError:  # pragma: no cover - sentry-sdk not installed
     _Transport = object
+
+
+_inside = threading.local()
+
+
+@contextmanager
+def quiet():
+    """Foxray at work (storing, alerting): an error raised in here, say by the
+    mail backend logging a failed alert, is dropped, never stored (no loops)."""
+    before = getattr(_inside, "on", False)
+    _inside.on = True
+    try:
+        yield
+    finally:
+        _inside.on = before
 
 
 def _summary(data: bytes) -> str:
@@ -87,6 +103,7 @@ class FoxrayTransport(_Transport):
             return self._queue
 
     def _run(self, q: queue.Queue) -> None:
+        _inside.on = True  # everything on this thread is Foxray's own work
         try:
             while True:
                 data = q.get()
@@ -106,6 +123,9 @@ class FoxrayTransport(_Transport):
                 pass
 
     def capture_envelope(self, envelope) -> None:
+        if getattr(_inside, "on", False):
+            log.warning("dropped an error raised inside Foxray's own work (it would loop)")
+            return
         try:
             data = envelope.serialize()
         except Exception:  # noqa: BLE001
