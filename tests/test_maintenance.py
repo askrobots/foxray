@@ -4,7 +4,6 @@ import json
 import os
 import threading
 import time
-from datetime import timedelta
 
 from foxray.core.maintenance import Maintenance, storage_report
 from foxray.core.settings import Settings

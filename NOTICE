@@ -1,0 +1,34 @@
+Foxray
+Copyright (c) 2026 Dan Quellhorst. MIT License (see LICENSE).
+
+Foxray works with the Sentry SDKs. It is not affiliated with, endorsed by, or
+sponsored by Functional Software, Inc. ("Sentry"). "Sentry" is a trademark of
+Functional Software, Inc.
+
+How it was built
+----------------
+Foxray is written from scratch (clean room) against public descriptions of
+the protocol the Sentry SDKs speak:
+
+- Sentry's SDK developer documentation (develop.sentry.dev): envelopes and
+  their item types, the event payload, the X-Sentry-Auth header and DSN
+  format, the X-Sentry-Rate-Limits header, and cron check-ins.
+- The sentry-python SDK (MIT License, Copyright (c) 2018 Functional Software,
+  Inc.), read as a reference for what it actually sends (compression, auth
+  header, check-in and monitor_config fields, how it parses rate-limit
+  headers) and used, unmodified, in Foxray's tests to prove compatibility.
+  No SDK code is included in Foxray.
+
+No code from Sentry's server (getsentry/sentry) or Relay (getsentry/relay),
+which are under the Functional Source License, was read or used.
+
+GlitchTip (MIT) was not used as a source: no GlitchTip code is included or
+adapted. The comparison in the README describes it from its public
+documentation.
+
+Optional third-party packages, not bundled
+------------------------------------------
+- Django (BSD-3-Clause), for the Django app.
+- psycopg (LGPL-3.0), for Postgres with the standalone server.
+- Brotli (MIT), to decode brotli-compressed envelopes.
+- sentry-sdk (MIT), for capturing a Django app's own errors in-process.

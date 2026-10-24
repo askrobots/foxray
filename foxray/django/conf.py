@@ -8,7 +8,13 @@ ALERT_EMAILS   list; default settings.ADMINS, else the superusers
 ALERT_WEBHOOK  URL to POST alerts to as JSON
 MAX_DB_MB, EVENT_RETENTION_DAYS, RATE_LIMIT_PER_MINUTE, ... any field of
 foxray.core.settings.Settings, upper-cased.
+
+Environment variables ``FOXRAY_<KEY>`` (e.g. FOXRAY_BASE_URL,
+FOXRAY_ALERT_WEBHOOK, FOXRAY_MAX_DB_MB, FOXRAY_AUTO_INIT=0) fill in any
+key settings.FOXRAY does not set.
 """
+
+import os
 
 from django.conf import settings as django_settings
 
@@ -16,8 +22,13 @@ from foxray.core.settings import Settings
 
 
 def conf() -> dict:
-    value = getattr(django_settings, "FOXRAY", None) or {}
-    return dict(value)
+    merged = {k[7:]: v for k, v in os.environ.items() if k.startswith("FOXRAY_") and not k.startswith("FOXRAY_TEST")}
+    if "AUTO_INIT" in merged:
+        merged["AUTO_INIT"] = merged["AUTO_INIT"].strip().lower() not in ("0", "false", "no", "off", "")
+    if isinstance(merged.get("ALERT_EMAILS"), str):
+        merged["ALERT_EMAILS"] = [e.strip() for e in merged["ALERT_EMAILS"].split(",") if e.strip()]
+    merged.update(getattr(django_settings, "FOXRAY", None) or {})
+    return merged
 
 
 def core_settings() -> Settings:

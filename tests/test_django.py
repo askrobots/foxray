@@ -269,3 +269,15 @@ def test_ingest_never_raises_into_django(project, rt, monkeypatch):
 def test_uuid_project_ids_rejected_cleanly(project):
     r = Client().post(f"/foxray/api/{uuid.uuid4().hex}/envelope/", data=b"{}", content_type="text/plain")
     assert r.status_code == 404
+
+
+def test_env_vars_fill_in_settings(monkeypatch, settings):
+    from foxray.django.conf import conf, core_settings
+    monkeypatch.setenv("FOXRAY_MAX_DB_MB", "123")
+    monkeypatch.setenv("FOXRAY_ALERT_EMAILS", "a@example.com, b@example.com")
+    monkeypatch.setenv("FOXRAY_BASE_URL", "https://from-env")
+    monkeypatch.setenv("FOXRAY_AUTO_INIT", "0")
+    assert core_settings().max_db_mb == 123
+    assert conf()["ALERT_EMAILS"] == ["a@example.com", "b@example.com"]
+    assert conf()["AUTO_INIT"] is False
+    assert core_settings().base_url == "http://testserver"  # settings.FOXRAY wins

@@ -23,7 +23,7 @@ from foxray.core.dsn import make_dsn
 from foxray.core.filters import RULE_KINDS, PatternError, validate_pattern
 from foxray.core.ingest import Ingestor
 from foxray.core.maintenance import Housekeeper, Maintenance, storage_report
-from foxray.core.models import ISSUE_STATUSES, LEVELS
+from foxray.core.models import LEVELS
 from foxray.core.present import (ago, day_bars, exceptions_for_display, kv_rows, reason_label, schedule_text,
                                  size_text, when)
 from foxray.core.sql import IssueQuery
