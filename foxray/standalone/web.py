@@ -88,7 +88,7 @@ th{font-size:12px;color:var(--muted);font-weight:600}td.n{text-align:right;font-
 .badge{display:inline-block;padding:1px 7px;border-radius:9px;font-size:12px;border:1px solid var(--line)}
 .fatal,.error,.missed,.timeout,.failed{color:var(--bad)}.warning,.pending,.in_progress{color:var(--warn)}
 .ok,.resolved,.sent{color:var(--ok)}.banner{background:var(--hi);border:1px solid var(--warn);padding:10px 12px;
-margin:0 0 14px;border-radius:6px}form.f{display:flex;flex-wrap:wrap;gap:8px;align-items:end;margin:0 0 12px}
+margin:0 0 14px;border-radius:6px}.f{display:flex;flex-wrap:wrap;gap:8px;align-items:end;margin:0 0 12px}
 label{display:flex;flex-direction:column;font-size:12px;color:var(--muted);gap:3px}
 input,select,button{font:inherit;padding:5px 8px;border:1px solid var(--line);border-radius:5px;background:var(--card);
 color:var(--fg)}button{cursor:pointer}button.p{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
@@ -106,6 +106,7 @@ pre em{color:var(--muted);font-style:normal;display:inline-block;min-width:3.5em
 .exc{margin:12px 0}.exc h3{font-size:15px;margin:0 0 4px;word-break:break-word}
 input.dsn{width:100%;font-family:var(--mono);font-size:12px}.meter{height:10px;background:var(--line);border-radius:5px;
 overflow:hidden}.meter i{display:block;height:100%;background:var(--accent)}
+.more{margin:-4px 0 12px}.more summary{cursor:pointer;margin-bottom:8px}
 .login{max-width:340px;margin:60px auto;background:var(--card);border:1px solid var(--line);border-radius:8px;
 padding:20px}.login form{display:flex;flex-direction:column;gap:10px}
 @media (max-width:700px){.hide-s{display:none}td,th{padding:6px}}
@@ -378,21 +379,27 @@ class Handler(BaseHTTPRequestHandler):
         envs = store.tag_values("environment", q.project_id)
         rels = store.tag_values("release", q.project_id)
         f = query.get
+        more_set = any(f(k) for k in ("project", "environment", "release", "first_from", "first_to", "last_from",
+                                      "last_to"))
+        project_select = (f'<label>Project<select name="project">{options([""] + [p.id for p in projects], q.project_id or "", {"": "any", **names})}</select></label>'
+                          if len(projects) > 1 else "")
         filters = (
-            '<form class="f" method="get" action="/issues">'
+            '<form method="get" action="/issues"><div class="f">'
             f'<label>Search<input name="q" value="{h(f("q", ""))}" placeholder="title or where"></label>'
             f'<label>Status<select name="status">{options(["unresolved", "resolved", "ignored", "all"], q.status)}'
             f'</select></label>'
             f'<label>Level<select name="level">{options([""] + list(LEVELS), q.level)}</select></label>'
-            + (f'<label>Project<select name="project">{options([""] + [p.id for p in projects], q.project_id or "", {"": "any", **names})}</select></label>' if len(projects) > 1 else "")
-            + f'<label>Environment<select name="environment">{options([""] + envs, q.environment)}</select></label>'
+            f'<label>Sort<select name="sort">{options(["last_seen", "first_seen", "count", "users"], q.sort, {"last_seen": "last seen", "first_seen": "first seen", "count": "count", "users": "users"})}</select></label>'
+            '<button class="p">Filter</button></div>'
+            f'<details class="more"{" open" if more_set else ""}><summary class="small muted">More filters</summary>'
+            f'<div class="f">{project_select}'
+            f'<label>Environment<select name="environment">{options([""] + envs, q.environment)}</select></label>'
             f'<label>Release<select name="release">{options([""] + rels, q.release)}</select></label>'
             f'<label>First seen from<input type="date" name="first_from" value="{h(f("first_from", ""))}"></label>'
             f'<label>to<input type="date" name="first_to" value="{h(f("first_to", ""))}"></label>'
             f'<label>Last seen from<input type="date" name="last_from" value="{h(f("last_from", ""))}"></label>'
             f'<label>to<input type="date" name="last_to" value="{h(f("last_to", ""))}"></label>'
-            f'<label>Sort<select name="sort">{options(["last_seen", "first_seen", "count", "users"], q.sort, {"last_seen": "last seen", "first_seen": "first seen", "count": "count", "users": "users"})}</select></label>'
-            '<button class="p">Filter</button></form>')
+            '</div></details></form>')
         rows = []
         for i in issues:
             proj = f'<span class="badge">{h(names.get(i.project_id, ""))}</span> ' if len(projects) > 1 else ""
