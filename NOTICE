@@ -22,9 +22,9 @@ the protocol the Sentry SDKs speak:
 No code from Sentry's server (getsentry/sentry) or Relay (getsentry/relay),
 which are under the Functional Source License, was read or used.
 
-GlitchTip (MIT) was not used as a source: no GlitchTip code is included or
-adapted. The comparison in the README describes it from its public
-documentation.
+GlitchTip (MIT) was not used as a source: no GlitchTip code was read,
+included or adapted. The comparison in the README is a short summary of the
+project as publicly described, not derived from its code.
 
 Optional third-party packages, not bundled
 ------------------------------------------

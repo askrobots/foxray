@@ -138,3 +138,21 @@ def test_standalone_http_edges(server):
                                  data=json.dumps({"message": "legacy"}).encode(), method="POST")
     with urllib.request.urlopen(req) as r:
         assert "id" in json.loads(r.read())
+
+
+@pytest.mark.slow
+def test_login_does_not_redirect_off_site(server):
+    subprocess.run([sys.executable, "-m", "foxray", "--db", server["db"], "create-user", "dev@example.com",
+                    "--password-stdin"], cwd=ROOT, env=ENV, input="correct horse battery\n", text=True,
+                   check=True, capture_output=True, timeout=60)
+
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, *a, **k):
+            return None
+    opener = urllib.request.build_opener(NoRedirect)
+    for evil in ("https://evil.example/", "//evil.example/", "/\\evil.example"):
+        data = urllib.parse.urlencode({"email": "dev@example.com", "password": "correct horse battery",
+                                       "next": evil}).encode()
+        with pytest.raises(urllib.error.HTTPError) as e:
+            opener.open(server["base"] + "/login", data)
+        assert e.value.code == 303 and e.value.headers["Location"] == "/issues", evil

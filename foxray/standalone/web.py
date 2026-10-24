@@ -6,6 +6,7 @@ plain server-rendered HTML with no JavaScript, so the CSP can forbid scripts.
 
 from __future__ import annotations
 
+import hmac
 import html
 import json
 import logging
@@ -300,7 +301,7 @@ class Handler(BaseHTTPRequestHandler):
             form = self._form()
             if form is None:
                 return self._html(413, page("Too large", "<p>That form was too large.</p>", user=user))
-            if form.get("csrf") != self._csrf:
+            if not hmac.compare_digest(form.get("csrf", ""), self._csrf):
                 return self._html(403, page("Forbidden", "<p>The form expired. Go back and try again.</p>", user=user))
             if path == "/logout":
                 return self._redirect("/login", {"Set-Cookie": f"{COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax"})
@@ -330,18 +331,22 @@ class Handler(BaseHTTPRequestHandler):
     def _login(self, method: str, query: dict):
         app = self.app
         error = ""
-        nxt = query.get("next") or "/issues"
-        if not nxt.startswith("/") or nxt.startswith("//"):
-            nxt = "/issues"
+        def safe_next(value):
+            value = value or "/issues"
+            ok = value.startswith("/") and not value.startswith(("//", "/\\")) and "\r" not in value \
+                and "\n" not in value
+            return value if ok else "/issues"
+        nxt = safe_next(query.get("next"))
         if method == "POST":
             form = self._form() or {}
+            nxt = safe_next(form.get("next") or nxt)
             row = app.store.user_by_email(form.get("email", ""))
             from .store import verify_password
             if row and verify_password(form.get("password", ""), row[2]):
                 secure = "; Secure" if self._secure() else ""
                 cookie = f"{COOKIE}={app.sessions.make(row)}; Path=/; Max-Age={app.sessions.max_age}; HttpOnly; " \
                          f"SameSite=Lax{secure}"
-                return self._redirect(form.get("next") or nxt, {"Set-Cookie": cookie})
+                return self._redirect(nxt, {"Set-Cookie": cookie})
             time.sleep(1.0)  # slow down guessing
             error = '<p class="bad">Wrong email or password.</p>'
         hint = ""
