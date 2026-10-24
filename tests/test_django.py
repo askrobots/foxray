@@ -11,6 +11,8 @@ import uuid
 from pathlib import Path
 
 import pytest
+
+from tests.sdk_compat import sdk_active, sdk_client
 from django.contrib.auth.models import Permission, User
 from django.core import mail
 from django.core.management import call_command
@@ -110,7 +112,7 @@ def test_in_process_transport_needs_no_dsn(rt):
     from foxray.django import sdk
     sdk.init(release="app@9")
     try:
-        assert sentry_sdk.get_client().is_active()
+        assert sdk_active()
         try:
             {}["nope"]
         except KeyError:
@@ -118,7 +120,7 @@ def test_in_process_transport_needs_no_dsn(rt):
         sentry_sdk.capture_message("hello from inside")
         sentry_sdk.flush(timeout=10)
     finally:
-        sentry_sdk.get_client().close(timeout=5)  # stops the transport thread
+        sdk_client().close(timeout=5)  # stops the transport thread
         sentry_sdk.init()  # back to an inactive client
     default = rt.store.get_project_by_name("default")
     ev = rt.store.find_event(default.id, event_id)

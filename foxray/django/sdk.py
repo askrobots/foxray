@@ -115,6 +115,17 @@ class FoxrayTransport(_Transport):
         except queue.Full:
             log.error("Foxray queue full; dropped: %s", _summary(data))
 
+    def capture_event(self, event) -> None:
+        """sentry-sdk 1.x hands plain errors here instead of to capture_envelope."""
+        try:
+            from sentry_sdk.envelope import Envelope
+            envelope = Envelope(headers={"event_id": event.get("event_id")})
+            envelope.add_event(event)
+        except Exception:  # noqa: BLE001
+            log.exception("could not wrap an event in an envelope")
+            return
+        self.capture_envelope(envelope)
+
     def flush(self, timeout, callback=None) -> None:
         q = self._queue
         if q is None:

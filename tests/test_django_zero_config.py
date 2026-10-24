@@ -72,7 +72,8 @@ from django.contrib.auth.models import User
 from django.test import Client
 import sentry_sdk
 
-assert sentry_sdk.get_client().is_active(), "Foxray did not start the SDK in-process"
+_c = sentry_sdk.get_client() if hasattr(sentry_sdk, "get_client") else sentry_sdk.Hub.current.client
+assert _c is not None and (_c.is_active() if hasattr(_c, "is_active") else _c.transport is not None), "Foxray did not start the SDK in-process"
 client = Client(raise_request_exception=False)
 response = client.get("/checkout/")
 assert response.status_code == 500, response.status_code
