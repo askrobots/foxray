@@ -46,7 +46,8 @@ def recipients(project) -> list[str]:
     configured = conf().get("ALERT_EMAILS")
     if configured:
         return [configured] if isinstance(configured, str) else list(configured)
-    admins = [email for _, email in getattr(django_settings, "ADMINS", [])]
+    # ADMINS is (name, address) pairs before Django 6.0, plain addresses from 6.0
+    admins = [a if isinstance(a, str) else a[1] for a in getattr(django_settings, "ADMINS", [])]
     if admins:
         return admins
     from django.contrib.auth import get_user_model

@@ -309,6 +309,14 @@ def test_auto_init_and_a_left_over_sentry_dsn(monkeypatch, settings):
     assert len(started) == 1
 
 
+def test_admins_as_pairs_or_plain_addresses(project, settings):
+    from foxray.django.runtime import recipients
+    settings.ADMINS = [("Ops", "ops@example.com")]        # before Django 6.0
+    assert recipients(project) == ["ops@example.com"]
+    settings.ADMINS = ["ops@example.com"]                 # Django 6.0 on
+    assert recipients(project) == ["ops@example.com"]
+
+
 def test_alert_sender(settings):
     from foxray.django.runtime import sender_email
     assert sender_email() == "foxray@example.com"         # the site's SERVER_EMAIL
