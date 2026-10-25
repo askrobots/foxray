@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,14 +7,29 @@ name = "foxray"
 version = "0.1.1"
 description = "A light error tracker that accepts errors from the Sentry SDKs. Works as a Django app or a single small process."
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
+license-files = ["LICENSE", "NOTICE"]
 requires-python = ">=3.10"
 authors = [{name = "Dan Quellhorst"}]
+keywords = ["error-tracking", "sentry", "django", "self-hosted", "monitoring", "cron-monitoring"]
 classifiers = [
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3",
+    "Development Status :: 3 - Alpha",
+    "Environment :: Web Environment",
     "Framework :: Django",
     "Framework :: Django :: 4.2",
+    "Framework :: Django :: 5.2",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development :: Bug Tracking",
+    "Topic :: System :: Monitoring",
 ]
 dependencies = []
 
@@ -23,6 +38,11 @@ django = ["Django>=4.2"]
 postgres = ["psycopg>=3.1"]
 brotli = ["Brotli"]
 dev = ["pytest", "pytest-django", "sentry-sdk>=2", "Django>=4.2,<5"]
+
+[project.urls]
+Homepage = "https://github.com/askrobots/foxray"
+Source = "https://github.com/askrobots/foxray"
+Issues = "https://github.com/askrobots/foxray/issues"
 
 [project.scripts]
 foxray = "foxray.standalone.cli:main"

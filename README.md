@@ -10,8 +10,8 @@ runs two ways from one codebase:
 
 **Works with the Sentry SDKs; not affiliated with Sentry.**
 
-Not on PyPI yet: install from a checkout with `pip install /path/to/foxray`
-(add `[postgres]` or `[brotli]` for those extras).
+Install from PyPI: `pip install foxray` (add `[postgres]` or `[brotli]` for
+those extras).
 
 **Design rule: one process plus one database; no Redis, Celery, Kafka or
 ClickHouse.** Everything other trackers push into side services lives in the
